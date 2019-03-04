@@ -16,6 +16,9 @@ public class BuildBoard : MonoBehaviour
     [Header("Board")]
     public BoardHandler board;
 
+    [Header("Tags")]
+    public string TileTag = "Tile";
+
     // Start is called before the first frame update
     void Start()
     {
@@ -42,6 +45,7 @@ public class BuildBoard : MonoBehaviour
                 newTile.transform.SetParent(tileParent.transform);
                 newTile.name = "Tile " + i + ", " + j;
                 newTile.GetComponent<TileBehavior>().SetGripPos(i, j);
+                newTile.tag = TileTag;
                 board.boardTiles.Add(newTile.GetComponent<TileBehavior>());
             }
         }

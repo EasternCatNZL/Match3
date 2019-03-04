@@ -44,4 +44,19 @@ public class TileBehavior : MonoBehaviour{
         gridPos.xPos = x;
         gridPos.yPos = y;
     }
+
+    public bool CheckIsNeighbour(TileBehavior other)
+    {
+        bool isNeighbour = false;
+
+        if(neighbours.xPosTile == other
+            || neighbours.yPosTile == other
+            || neighbours.xNegTile == other
+            || neighbours.yNegTile == other)
+        {
+            isNeighbour = true;
+        }
+
+        return isNeighbour;
+    }
 }

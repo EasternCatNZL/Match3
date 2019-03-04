@@ -1,21 +1,26 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening;
 
 public class BoardHandler : MonoBehaviour
 {
+    [Header("Containers")]
     public JewelPiece[] jewels = new JewelPiece[0];
     public List<JewelPiece> boardJewels = new List<JewelPiece>();
     public List<TileBehavior> boardTiles = new List<TileBehavior>();
 
     private List<TileBehavior> checkedTiles = new List<TileBehavior>();
 
+    [Header("Organization stuff")]
     public Transform jewelHolder;
     public JewelPiece swapJewel;
 
-    //debug control vars
-    float lastTry = 0.0f;
-    float timeBetweenTries = 0.5f;
+    [Header("Tweening stuff")]
+    public float travelTime = 0.5f;
+
+    //control vars
+    public bool doingThings = false;
 
     // Start is called before the first frame update
     void Start()
@@ -296,9 +301,7 @@ public class BoardHandler : MonoBehaviour
                     break;
                 }
             }
-
         }
-
         return found;
     }
 
@@ -455,6 +458,66 @@ public class BoardHandler : MonoBehaviour
         {
             boardTiles[k].piece = boardJewels[k];
             boardJewels[k].transform.position = boardTiles[k].transform.position;
+        }
+    }
+
+    //clear jewels and do score
+    private void ClearJewels()
+    {
+        for (int i = 0; i < checkedTiles.Count; i++)
+        {
+            Destroy(checkedTiles[i].piece.gameObject);
+            //do scoring things
+
+            //move jewels down
+
+            //repopulate jewels
+        }
+    }
+
+    ////call for other classes to start coroutine
+    //public void CallSwap()
+
+    //exchange jewels
+    public IEnumerator ExchangeJewels(TileBehavior first, TileBehavior second)
+    {
+        //board is doing things
+        doingThings = true;
+        //do the swap
+        JewelPiece tempHold = second.piece;
+        second.piece = first.piece;
+        first.piece = tempHold;
+        //do the tween
+        first.piece.gameObject.transform.DOMove(first.transform.position, travelTime);
+        second.piece.gameObject.transform.DOMove(second.transform.position, travelTime);
+
+        //wait for tween to finish
+        yield return new WaitForSeconds(travelTime);
+
+        //check for completed move
+        checkedTiles.Clear();
+        CheckBoardCompletedMove();
+
+        //if was complete clear tiles
+        if(checkedTiles.Count > 0)
+        {
+
+        }
+        //else was not swap back
+        else
+        {
+            //do the swap
+            tempHold = second.piece;
+            second.piece = first.piece;
+            first.piece = tempHold;
+            //do the tween
+            first.piece.gameObject.transform.DOMove(first.transform.position, travelTime);
+            second.piece.gameObject.transform.DOMove(second.transform.position, travelTime);
+
+            //wait for tween to finish
+            yield return new WaitForSeconds(travelTime);
+            //board not doing things
+            doingThings = false;
         }
     }
 }
