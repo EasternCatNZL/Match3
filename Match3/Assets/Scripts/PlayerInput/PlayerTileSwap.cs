@@ -6,6 +6,7 @@ public class PlayerTileSwap : MonoBehaviour
 {
     [Header("References")]
     public BoardHandler board;
+    public LevelHandler level;
 
     [Header("Tags")]
     public string tileTag = "Tile";
@@ -24,7 +25,7 @@ public class PlayerTileSwap : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!board.doingThings)
+        if (!board.doingThings && level.gameActive)
         {
             HandleMouseInput();
         }
@@ -64,6 +65,8 @@ public class PlayerTileSwap : MonoBehaviour
                                 secondTile = rayHit.collider.gameObject.GetComponent<TileBehavior>();
                                 //do swap
                                 StartCoroutine(board.ExchangeJewels(firstTile, secondTile));
+                                firstTile = null;
+                                secondTile = null;
                             }
                             else
                             {

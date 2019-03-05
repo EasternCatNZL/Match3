@@ -11,6 +11,7 @@ public class BoardHandler : MonoBehaviour
     public List<TileBehavior> boardTiles = new List<TileBehavior>();
 
     private List<TileBehavior> checkedTiles = new List<TileBehavior>();
+    private List<JewelPiece> checkedJewels = new List<JewelPiece>();
 
     [Header("Organization stuff")]
     public Transform jewelHolder;
@@ -19,37 +20,40 @@ public class BoardHandler : MonoBehaviour
     [Header("Tweening stuff")]
     public float travelTime = 0.5f;
 
+    [Header("Repopulator")]
+    public Transform[] repop = new Transform[0];
+
+    [Header("References")]
+    public LevelHandler level;
+
+    [Header("Audio")]
+    public AudioSource clearSfx;
+
     //control vars
     public bool doingThings = false;
 
     // Start is called before the first frame update
     void Start()
     {
-        InitialiseBoard();
+        //InitialiseBoard();
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.P))
-        {
-            InitialiseBoard();
-        }
+
     }
 
     //fill board with random jewels
     public void InitialiseBoard()
     {
         bool boardReady = false;
-        //int attempts = 0;
         //remove any jewels on the board before trying to populate
         RemoveJewels();
         //populate the board with jewels
         PopulateBoard();
         while (!boardReady)
         {
-            //attempts++;
-            
             //check if board has any completed moves
             if (!CheckBoardCompletedMove())
             {
@@ -57,18 +61,15 @@ public class BoardHandler : MonoBehaviour
                 if (CheckAvailibleMove())
                 {
                     boardReady = true;
-                    Debug.Log("Board ready");
                 }
                 else
                 {
-                    Debug.Log("No availible move, shuffling");
                     //shuffle pieces
                     ShuffleJewels();
                 }
             }
             else
             {
-                Debug.Log("Completed move already exists");
                 //change out a random jewel
                 SwapOutJewel(checkedTiles[Random.Range(0, checkedTiles.Count - 1)]);
             }
@@ -136,7 +137,7 @@ public class BoardHandler : MonoBehaviour
 
                 if (!boardTiles[i].neighbours.yPosTile)
                 {
-                    //if the currently checked against tile is the z +ve tile 
+                    //if the currently checked against tile is the y +ve tile 
                     if (boardTiles[i].gridPos.xPos == boardTiles[j].gridPos.xPos
                         && boardTiles[i].gridPos.yPos + 1 == boardTiles[j].gridPos.yPos)
                     {
@@ -146,7 +147,7 @@ public class BoardHandler : MonoBehaviour
 
                 if (!boardTiles[i].neighbours.yNegTile)
                 {
-                    //if the currently checked against tile is the z -ve tile 
+                    //if the currently checked against tile is the y -ve tile 
                     if (boardTiles[i].gridPos.xPos == boardTiles[j].gridPos.xPos
                         && boardTiles[i].gridPos.yPos - 1 == boardTiles[j].gridPos.yPos)
                     {
@@ -168,7 +169,7 @@ public class BoardHandler : MonoBehaviour
             if (CheckCompletedMove(boardTiles[i]))
             {
                 found = true;
-                break;
+                //break;
             }
         }
 
@@ -180,12 +181,16 @@ public class BoardHandler : MonoBehaviour
     {
         bool found = false;
 
-        //check vertical
-        if(CheckVertical(tile) || CheckHorizontal(tile))
+        //check if tile has a jewel
+        if (tile.piece)
         {
-            found = true;
-            print("Completed move found");
+            //check if a completed move exists
+            if (CheckVertical(tile) || CheckHorizontal(tile))
+            {
+                found = true;
+            }
         }
+        
 
         return found;
     }
@@ -311,6 +316,7 @@ public class BoardHandler : MonoBehaviour
         List<TileBehavior> markedList = new List<TileBehavior>();
         markedList.Add(tile);
 
+        //if has neighbours, search
         if (tile.neighbours.yPosTile)
         {
             CheckUp(tile.neighbours.yPosTile, tile.piece, markedList);
@@ -320,19 +326,15 @@ public class BoardHandler : MonoBehaviour
             CheckDown(tile.neighbours.yNegTile, tile.piece, markedList);
         }
 
+        //found enough to clear, add to checked list
         if(markedList.Count >= 3)
         {
             found = true;
             for(int i = 0; i < markedList.Count; i++)
-            {                
-                checkedTiles.Add(markedList[i]);
-            }
-            string completed = "Vertical Completed at ";
-            for (int j = 0; j < markedList.Count; j++)
             {
-                completed += markedList[j].name + " ";
+                if (!checkedTiles.Contains(markedList[i]))
+                    checkedTiles.Add(markedList[i]);
             }
-            print(completed);
         }
 
         return found;
@@ -340,26 +342,33 @@ public class BoardHandler : MonoBehaviour
 
     private void CheckUp(TileBehavior tileToCheck, JewelPiece match, List<TileBehavior> markedList)
     {
-        if(tileToCheck.piece.jewel == match.jewel)
+        if (tileToCheck.piece)
         {
-            markedList.Add(tileToCheck);
-            if (tileToCheck.neighbours.yPosTile)
+            if (tileToCheck.piece.jewel == match.jewel)
             {
-                CheckUp(tileToCheck.neighbours.yPosTile, match, markedList);
+                markedList.Add(tileToCheck);
+                if (tileToCheck.neighbours.yPosTile)
+                {
+                    CheckUp(tileToCheck.neighbours.yPosTile, match, markedList);
+                }
             }
         }
+        
     }
 
     private void CheckDown(TileBehavior tileToCheck, JewelPiece match, List<TileBehavior> markedList)
     {
-        if (tileToCheck.piece.jewel == match.jewel)
+        if (tileToCheck.piece)
         {
-            markedList.Add(tileToCheck);
-            if (tileToCheck.neighbours.yNegTile)
+            if (tileToCheck.piece.jewel == match.jewel)
             {
-                CheckDown(tileToCheck.neighbours.yNegTile, match, markedList);
+                markedList.Add(tileToCheck);
+                if (tileToCheck.neighbours.yNegTile)
+                {
+                    CheckDown(tileToCheck.neighbours.yNegTile, match, markedList);
+                }
             }
-        }
+        }        
     }
 
     private bool CheckHorizontal(TileBehavior tile)
@@ -368,6 +377,7 @@ public class BoardHandler : MonoBehaviour
         List<TileBehavior> markedList = new List<TileBehavior>();
         markedList.Add(tile);
 
+        //if has neighbours, search
         if (tile.neighbours.xPosTile)
         {
             CheckRight(tile.neighbours.xPosTile, tile.piece, markedList);
@@ -377,19 +387,15 @@ public class BoardHandler : MonoBehaviour
             CheckLeft(tile.neighbours.xNegTile, tile.piece, markedList);
         }
 
+        //if enough found, add to checked list
         if (markedList.Count >= 3)
         {
             found = true;
             for (int i = 0; i < markedList.Count; i++)
-            {                
+            {
+                if(!checkedTiles.Contains(markedList[i]))
                 checkedTiles.Add(markedList[i]);
             }
-            string completed = "Horizontal Completed at ";
-            for (int j = 0; j < markedList.Count; j++)
-            {
-                completed += markedList[j].name + " ";
-            }
-            print(completed);
         }
 
         return found;
@@ -397,28 +403,35 @@ public class BoardHandler : MonoBehaviour
 
     private void CheckRight(TileBehavior tileToCheck, JewelPiece match, List<TileBehavior> markedList)
     {
-        if (tileToCheck.piece.jewel == match.jewel)
+        if (tileToCheck.piece)
         {
-            markedList.Add(tileToCheck);
-            if (tileToCheck.neighbours.xPosTile)
+            if (tileToCheck.piece.jewel == match.jewel)
             {
-                CheckRight(tileToCheck.neighbours.xPosTile, match, markedList);
+                markedList.Add(tileToCheck);
+                if (tileToCheck.neighbours.xPosTile)
+                {
+                    CheckRight(tileToCheck.neighbours.xPosTile, match, markedList);
+                }
             }
-        }
+        }        
     }
 
     private void CheckLeft(TileBehavior tileToCheck, JewelPiece match, List<TileBehavior> markedList)
     {
-        if (tileToCheck.piece.jewel == match.jewel)
+        if (tileToCheck.piece)
         {
-            markedList.Add(tileToCheck);
-            if (tileToCheck.neighbours.xNegTile)
+            if (tileToCheck.piece.jewel == match.jewel)
             {
-                CheckLeft(tileToCheck.neighbours.xNegTile, match, markedList);
+                markedList.Add(tileToCheck);
+                if (tileToCheck.neighbours.xNegTile)
+                {
+                    CheckLeft(tileToCheck.neighbours.xNegTile, match, markedList);
+                }
             }
-        }
+        }        
     }
 
+    //swaps jewels at init if completed moves found
     private void SwapOutJewel(TileBehavior tile)
     {
         swapJewel.jewel = tile.piece.jewel;
@@ -431,7 +444,6 @@ public class BoardHandler : MonoBehaviour
             newJewel.transform.position = tile.transform.position;
             newJewel.transform.SetParent(jewelHolder);
         }
-        print("Swapped jewel at " + tile.name + " from " + swapJewel.jewel.ToString() + " to " + tile.piece.jewel.ToString());
     }
 
     //shuffle jewels when no avalible move using fisher yates shuffler
@@ -467,16 +479,146 @@ public class BoardHandler : MonoBehaviour
         for (int i = 0; i < checkedTiles.Count; i++)
         {
             Destroy(checkedTiles[i].piece.gameObject);
+            checkedTiles[i].piece = null;
             //do scoring things
-
+            level.jewelsCleared++;
+        }
+        clearSfx.Play();
+        if(level.jewelsCleared >= level.jewelsToClear)
+        {
+            level.ScoreReached();
+        }
+        else
+        {
             //move jewels down
+            StartCoroutine(CheckToDrop());
+        }
+        
+    }
 
+    private IEnumerator CheckToDrop()
+    {
+        //not behaving brute force time
+        bool didntMove = false;
+        while (!didntMove)
+        {
+            //if nothing ends up moving, end
+            didntMove = true;
+            for (int i = 0; i < boardTiles.Count; i++)
+            {
+                //if holding a piece
+                if (boardTiles[i].piece)
+                {
+                    //if there is a neighbour below it
+                    if (boardTiles[i].neighbours.yNegTile)
+                    {
+                        //if tile below it does not have a piece
+                        if (boardTiles[i].neighbours.yNegTile.piece == null)
+                        {
+                            //swap the pieces
+                            boardTiles[i].neighbours.yNegTile.piece = boardTiles[i].piece;
+                            boardTiles[i].piece = null;
+                            //a piece moved
+                            didntMove = false;
+                        }
+                    }
+                    
+                }
+            }
+        }
+        //tween movement of all tiles if it has a jewel assigned to it
+        for(int i = 0; i < boardTiles.Count; i++)
+        {
+            if (boardTiles[i].piece)
+            {
+                boardTiles[i].piece.transform.DOMove(boardTiles[i].transform.position, travelTime);
+            }
+        }
+
+        //wait for the movement
+        yield return new WaitForSeconds(travelTime);
+
+        //check if new finished sets form after drop
+        checkedTiles.Clear();
+        CheckBoardCompletedMove();
+        if(checkedTiles.Count > 3)
+        {
+            ClearJewels();
+        }
+        else
+        {
             //repopulate jewels
+            StartCoroutine(RepopulateJewels());
         }
     }
 
-    ////call for other classes to start coroutine
-    //public void CallSwap()
+    private TileBehavior FindJewelToDrop(TileBehavior tileToCheck/*, TileBehavior tileToDrop*/)
+    {
+        TileBehavior tileToReturn = null;
+        //if this tile has a jewel, return it
+        if (tileToCheck.piece != null)
+        {
+            tileToReturn = tileToCheck;
+        }
+        else
+        {
+            //else check for next tile
+            if (tileToCheck.neighbours.yPosTile)
+            {
+                tileToReturn = FindJewelToDrop(tileToCheck.neighbours.yPosTile);
+            }
+        }
+        return tileToReturn;
+    }
+
+    //repopulate jewels
+    private IEnumerator RepopulateJewels()
+    {
+        //empty checked tiles for use
+        checkedTiles.Clear();
+        //find all the tiles with no jewel
+        for(int i = 0; i < boardTiles.Count; i++)
+        {
+            if(boardTiles[i].piece == null)
+            {
+                checkedTiles.Add(boardTiles[i]);
+            }
+        }
+
+        //create a new jewel for all tiles that have no jewel
+        for(int i = 0; i < checkedTiles.Count; i++)
+        {
+            //use the transform of repopulator in same col
+            GameObject newJewel;
+
+            newJewel = Instantiate(jewels[Random.Range(0, jewels.Length)].gameObject, repop[checkedTiles[i].gridPos.xPos].transform.position, Quaternion.identity);
+            checkedTiles[i].piece = newJewel.GetComponent<JewelPiece>();
+            newJewel.transform.SetParent(jewelHolder);
+            //tween the jewel to it's new tile
+            newJewel.transform.DOMove(checkedTiles[i].transform.position, travelTime);
+        }
+        //wait for tween
+        yield return new WaitForSeconds(travelTime);
+
+        //check for completed moves
+        checkedTiles.Clear();
+        CheckBoardCompletedMove();
+        //if there are new completed moves, clear out
+        if(checkedTiles.Count > 0)
+        {
+            ClearJewels();
+        }
+        //check if availible move exists, shuffle jewels
+        else if(!CheckAvailibleMove())
+        {
+            ShuffleJewels();
+        }
+        //other wise, ready for new player input
+        else
+        {
+            doingThings = false;
+        }
+    }
 
     //exchange jewels
     public IEnumerator ExchangeJewels(TileBehavior first, TileBehavior second)
@@ -501,7 +643,7 @@ public class BoardHandler : MonoBehaviour
         //if was complete clear tiles
         if(checkedTiles.Count > 0)
         {
-
+            ClearJewels();
         }
         //else was not swap back
         else
